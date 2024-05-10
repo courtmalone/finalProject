@@ -1,0 +1,114 @@
+import java.util.Arrays;
+import java.util.List;
+
+public class ProductRecommendationSystem {
+
+    public double[][] preferences; // Preferences arrays for products
+    public int k; // Number of clusters
+    public List<String> productNames; // Names of products
+    public int[] assignment; // Assignment of users to clusters
+    public double[][] centroids; // Centroids of clusters
+    public int numUsers; // Number of users
+
+    public ProductRecommendationSystem(double[][] preferences, List<String> productNames, int k) {
+        this.preferences = preferences;
+        this.productNames = productNames;
+        this.k = k;
+        this.numUsers = preferences.length;
+    }
+
+    public void recommendProducts() {
+        // Initialize centroids
+        chooseInitialCentroids();
+
+        // Perform clustering iterations
+        for (int iter = 0; iter < 10; iter++) {
+            assignmentStep();
+            updateStep();
+        }
+
+        // Recommend products based on centroids
+        recommendBasedOnCentroids();
+    }
+
+    void chooseInitialCentroids() {
+        centroids = new double[k][preferences[0].length];
+        // Pick the first K users' preferences as initial centroids
+        for (int i = 0; i < k; i++) {
+            centroids[i] = preferences[i];
+        }
+    }
+
+    void assignmentStep() {
+        assignment = new int[preferences.length];
+        for (int i = 0; i < preferences.length; i++) {
+            double minDist = Double.POSITIVE_INFINITY;
+            int closestCentroid = -1;
+            for (int j = 0; j < k; j++) {
+                double dist = distance(preferences[i], centroids[j]);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestCentroid = j;
+                }
+            }
+            assignment[i] = closestCentroid;
+        }
+    }
+
+    void updateStep() {
+        double[][] newCentroids = new double[k][preferences[0].length];
+        int[] clusterSizes = new int[k];
+        for (int i = 0; i < preferences.length; i++) {
+            int clusterIndex = assignment[i];
+            clusterSizes[clusterIndex]++;
+            for (int j = 0; j < preferences[0].length; j++) {
+                newCentroids[clusterIndex][j] += preferences[i][j];
+            }
+        }
+        for (int i = 0; i < k; i++) {
+            for (int j = 0; j < preferences[0].length; j++) {
+                newCentroids[i][j] /= clusterSizes[i];
+            }
+        }
+        centroids = newCentroids;
+    }
+
+    double distance(double[] a, double[] b) {
+        double sum = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            sum += Math.pow(a[i] - b[i], 2);
+        }
+        return Math.sqrt(sum);
+    }
+
+    void recommendBasedOnCentroids() {
+        // Recommend products based on centroids
+        // For each centroid, recommend products closest to it
+        for (int i = 0; i < k; i++) {
+            System.out.println("Cluster " + i + " Recommendation:");
+            for (int j = 0; j < centroids[i].length; j++) {
+                // Find product closest to centroid's preference
+                double minDist = Double.POSITIVE_INFINITY;
+                int closestProductIndex = -1;
+                for (int p = 0; p < preferences[0].length; p++) {
+                    double dist = Math.abs(centroids[i][j] - preferences[i][p]);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestProductIndex = p;
+                    }
+                }
+                System.out.println(productNames.get(closestProductIndex));
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        // Sample usage
+        double[][] preferences = {{5, 3, 0, 4}, {0, 4, 3, 5}, {2, 0, 1, 4}};
+        List<String> productNames = Arrays.asList("Product A", "Product B", "Product C", "Product D");
+        int k = 2;
+
+        ProductRecommendationSystem recommendationSystem = new ProductRecommendationSystem(preferences, productNames, k);
+        recommendationSystem.recommendProducts();
+    }
+}
